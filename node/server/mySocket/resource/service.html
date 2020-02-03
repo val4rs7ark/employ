@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+</head>
+
+<body>
+
+
+
+</body>
+
+<script src="http://localhost:8888/socket.io/socket.io.js"></script> //localhost의 socket.io.js를 불러옵니다.
+
+<script>
+
+
+
+var socket = io.connect('http://localhost:8888');  //localhost로 연결합니다.
+
+
+
+socket.on('news', function (data) {  // 서버에서 news 이벤트가 일어날 때 데이터를 받습니다.
+
+    console.log(data);
+
+    socket.emit('my other event', { my: 'data' });   //서버에 my other event 이벤트를 보냅니다.
+
+});
+
+
+
+</script>
+
+</html>
