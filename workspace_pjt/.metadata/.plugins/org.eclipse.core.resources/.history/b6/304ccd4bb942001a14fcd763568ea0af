@@ -1,0 +1,70 @@
+package com.basic.emp.dao;
+
+import java.util.List;
+import java.util.Map;
+
+import com.basic.emp.bean.MenuInfoBean;
+
+public interface EmpDao {
+	
+	public int memUpdate(Map<String, Object> pMap);
+
+	public String testing(String toDate);
+	
+	public int getMemNo();
+	
+	public int getBorNo();
+	
+	public int getAminBorNo();
+	
+	public int getGrpNo();
+	
+	public int getStpNo(Map<String, Object> pMap);
+	
+	public int getBorGrp(Map<String, Object> pMap);
+	
+	public int getMatNo(Map<String, Object> pMap);
+	
+	public String getMenuContent(Map<String, Object> pMap);
+	
+	public List<Map<String, Object>> getMainBoard();
+
+	public List<Map<String, Object>> getMainNotice();
+	
+	public List<Map<String, Object>> getMyMenu();
+	
+	public List<Map<String,Object>> getBoardList();
+	
+	public List<Map<String,Object>> getNoticeList();
+	
+	public List<Map<String,Object>> getMemberList();
+
+	public int insertSignUp(Map<String, Object> pMap);
+
+	public int boardInsert(Map<String, Object> pMap);
+
+	public int commentInsert(Map<String, Object> pMap);
+	
+	public int updateMenu(Map<String, Object> pMap);
+	
+	public int adminBoardInsert(Map<String, Object> pMap);
+	
+	public Map<String, Object> getBoardDetail(Map<String, Object> pMap);
+
+	public Map<String, Object> getNoticeDetail(Map<String, Object> pMap);
+	
+	public List<Map<String, Object>> getSearchBoard(Map<String, Object> pMap);
+	
+	public List<Map<String, Object>> getSearchNotice(Map<String, Object> pMap);
+	
+	public void detailHitUpd(Map<String, Object> pMap);
+
+	public void noticeHitUpd(Map<String, Object> pMap);
+
+	public List<Map<String, Object>> getBoardCommentList(Map<String, Object> pMap);
+
+
+
+
+
+}

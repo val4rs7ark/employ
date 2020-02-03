@@ -1,0 +1,184 @@
+package com.basic.emp.controller;
+
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
+
+import com.basic.emp.service.BoardService;
+import com.google.gson.Gson;
+
+@RestController
+public class ProcController {
+	private static final Logger logger = Logger.getLogger(ProcController.class);
+	
+	@Autowired
+	private BoardService boardService;
+	
+	@Autowired
+	private DelegatingPasswordEncoder delegatingPasswordEncoder;
+	
+	@RequestMapping("memUpdateAjax")
+	public String memUpdate(@RequestParam Map<String,Object> pMap) {
+		String member_id = pMap.get("member_id").toString();
+		String member_pw = pMap.get("member_pw").toString();
+		logger.info("입력받은 패스워드 --> "+member_pw);
+		String enPw = delegatingPasswordEncoder.encode(member_pw);
+		logger.info("암호화 패스워드 --> "+enPw);
+		String result = boardService.memUpdate(member_id,enPw);
+		return result;
+	}
+	
+	@RequestMapping(value ="insertSignUpAjax",  produces ="text/plain; charset=utf8")
+	public String insertSignUp(@RequestParam Map<String,Object> pMap) {
+		logger.info("insertSignUp 호출 성공");
+		String ins_pw = pMap.get("ins_pw").toString();
+		String enPw = delegatingPasswordEncoder.encode(ins_pw);
+		pMap.put("ins_pw", enPw);
+		String result = boardService.insertSignUp(pMap);
+		return result;
+	}
+	
+	@RequestMapping(value ="insertBoardAjax",  produces ="text/plain; charset=utf8")
+	public String boardInsert(@RequestBody Map<String,Object> pMap) {
+		logger.info("insertBoardAjax 호출 성공 --> pMap : "+ pMap.toString());
+		Object[] keys = pMap.keySet().toArray();
+		for(Object key : keys) {
+			logger.info("****************** key --> "+key.toString()+", value --> "+pMap.get(key.toString()));
+		}
+		int result = boardService.boardInsert(pMap);
+		
+		return result+"";
+	}
+	
+	@RequestMapping(value ="insertCommentAjax",  produces ="text/plain; charset=utf8")
+	public String insertCommentAjax(@RequestBody Map<String,Object> pMap) {
+		logger.info("insertBoardAjax 호출 성공 --> pMap : "+ pMap.toString());
+		Object[] keys = pMap.keySet().toArray();
+		for(Object key : keys) {
+			logger.info("****************** key --> "+key.toString()+", value --> "+pMap.get(key.toString()));
+		}
+		int result = boardService.boardInsert(pMap);
+		
+		return result+"";
+	}
+	
+	@RequestMapping(value ="AdminInsertBoardAjax",  produces ="text/plain; charset=utf8")
+	public String AdminInsertBoard(@RequestBody Map<String,Object> pMap) {
+		logger.info("AdminInsertBoardAjax 호출 성공 --> pMap : "+ pMap.toString());
+		Object[] keys = pMap.keySet().toArray();
+		for(Object key : keys) {
+			logger.info("****************** key --> "+key.toString()+", value --> "+pMap.get(key.toString()));
+		}
+		int result = boardService.adminBoardInsert(pMap);
+		
+		return result+"";
+	}
+	
+	@RequestMapping(value ="/admin/getMenuMapAjax",  produces ="application/json; charset=utf8")
+	public String getMenuMap() {
+		logger.info("getMenuMapAjax 호출 성공");
+		List<Map<String, Object>> result = boardService.getMyMenu(); 
+		logger.info("*********************** result --> "+result);
+		Gson g = new Gson();
+		String gson = g.toJson(result);
+		return gson;
+	}
+	@RequestMapping(value ="/admin/updateMenuAjax",  produces ="text/plain; charset=utf8")
+	public String updateMenu(@RequestBody Map<String,Object> pMap) {
+		logger.info("updateMenuAjax 호출 성공");
+		int result = boardService.updateMenu(pMap);
+		logger.info(result+"");
+		return result+"";
+	}
+	
+	@RequestMapping(value ="getSearchMapAjax",  produces ="application/json; charset=utf8")
+	public String getSearchMap(@RequestBody Map<String,Object> pMap) {
+		logger.info("getSearchMap 호출 성공");
+		Object[] keys = pMap.keySet().toArray();
+		for(Object key : keys) {
+			logger.info("****************** key --> "+key.toString()+", value --> "+pMap.get(key.toString()));
+		}
+		Map<String, Object> result = boardService.getSearchMap(pMap);
+		Gson g = new Gson();
+		String gson = g.toJson(result);
+		return gson;
+	}
+	
+	@RequestMapping(value ="getBoardListAjax",  produces ="application/json; charset=utf8")
+	public String getBoardList(@RequestBody Map<String,Object> pMap) {
+		logger.info("getBoardList 호출 성공");
+		Object[] keys = pMap.keySet().toArray();
+		for(Object key : keys) {
+			logger.info("****************** key --> "+key.toString()+", value --> "+pMap.get(key.toString()));
+		}
+		Map<String, Object> result = boardService.getBoardList(pMap);
+		Gson g = new Gson();
+		String gson = g.toJson(result);
+		return gson;
+	}
+	
+	@RequestMapping(value ="getNoticeListAjax",  produces ="application/json; charset=utf8")
+	public String getNoticeList(@RequestBody Map<String,Object> pMap) {
+		logger.info("getBoardList 호출 성공");
+		Object[] keys = pMap.keySet().toArray();
+		for(Object key : keys) {
+			logger.info("****************** key --> "+key.toString()+", value --> "+pMap.get(key.toString()));
+		}
+		Map<String, Object> result = boardService.getNoticeList(pMap);
+		Gson g = new Gson();
+		String gson = g.toJson(result);
+		return gson;
+	}
+	
+	@RequestMapping(value ="getBoardDetailAjax",  produces ="application/json; charset=utf8")
+	public String getBoardDetailAjax(@RequestBody Map<String,Object> pMap) {
+		logger.info("getBoardDetailAjax 호출 성공");
+		Object[] keys = pMap.keySet().toArray();
+		for(Object key : keys) {
+			logger.info("****************** key --> "+key.toString()+", value --> "+pMap.get(key.toString()));
+		}
+		Map<String, Object> result = boardService.getBoardDetail(pMap);
+		Gson g = new Gson();
+		String gson = g.toJson(result);
+		return gson;
+	}
+	
+	@RequestMapping(value ="getNoticeDetailAjax",  produces ="application/json; charset=utf8")
+	public String getNoticeDetailAjax(@RequestBody Map<String,Object> pMap) {
+		logger.info("getNoticeDetailAjax 호출 성공");
+		Object[] keys = pMap.keySet().toArray();
+		for(Object key : keys) {
+			logger.info("****************** key --> "+key.toString()+", value --> "+pMap.get(key.toString()));
+		}
+		Map<String, Object> result = boardService.getNoticeDetail(pMap);
+		Gson g = new Gson();
+		String gson = g.toJson(result);
+		return gson;
+	}
+	
+	@RequestMapping("ckeditor/imageUpload")
+	public void imageUpload(HttpServletRequest request, HttpServletResponse response,MultipartHttpServletRequest upload) {
+		boardService.imageUpload(request,response,upload);
+	}
+	
+	@RequestMapping("testing")
+	public String testing(@RequestParam Map<String,Object> pMap) {
+		//String toDate = pMap.get("toDate").toString();
+		//String result = boardService.testing(toDate);
+		List<Map<String,Object>> menuList = boardService.getMyMenu();
+		String result = menuList.toString();
+		return result;
+	}
+
+}

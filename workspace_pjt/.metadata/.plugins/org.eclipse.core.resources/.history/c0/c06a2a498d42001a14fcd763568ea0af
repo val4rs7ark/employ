@@ -1,0 +1,241 @@
+angularApp.controller('angularCtrl',['$scope','$window','Ajax',function($scope,$window,Ajax){	
+	$scope.getMainInit = function(){
+
+	};
+	$scope.getSearchInit = function(){
+		let param = Ajax.getParam("q");
+		let params = {
+				search : param
+		};
+		Ajax.getSearchMap(params).then(function(data){
+			console.log(data);
+			$scope.searchBoard = data.boardList;
+			$scope.searchNotice = data.noticeList;
+		});
+	};
+	$scope.getBoardInit = function(){
+		$scope.pagingNowPage = 1;
+		$scope.getPagingArray();
+	};
+	$scope.getNoticeInit = function(){
+		$scope.adminYn = "Y";
+		$scope.pagingNowPage = 1;
+		$scope.getPagingArray(1);
+	};
+	$scope.getInsertInit = function(){
+		let adminYn = Ajax.getParam("adminYn");
+		if(adminYn == "Y"){
+			$scope.adminYn = "Y";
+		}
+	};
+	$scope.getBoardDetailInit = function(){
+		$scope.replyYn = [];
+		$scope.replyStyle = [];
+		$scope.selectCount = 0;
+		$scope.board_no = Ajax.getParam("board_no");
+		let params = {
+			board_no : $scope.board_no
+		}
+		Ajax.getBoardDetail(params).then(function(data){
+			$scope.boardDetailMap = data.detailMap;
+			$scope.boardCommentList = data.commentList;
+		});
+	};
+	$scope.getAdminBoardInit = function(){
+		$scope.inp_title = [];
+		Ajax.getMenuMap().then(function(data){
+			$scope.menuList = data;
+		});
+	};
+	$scope.getNoticeDetailInit = function(){
+		$scope.notice_no = Ajax.getParam("notice_no");
+		let params = {
+				notice_no : $scope.notice_no
+		}
+		Ajax.getNoticeDetail(params).then(function(data){
+			console.log(data);
+			$scope.noticeDetailMap = data;
+		});
+	};
+	$scope.getPagingArray = function(param){
+		let params = {
+				nowPage : $scope.pagingNowPage
+		};
+		if(param == null){
+			Ajax.getBoardList(params).then(function(data){
+				$scope.boardList = data.boardList;	
+				$scope.pagingStartNo = data.pagingMap.startNo;
+				$scope.pagingEndNo = data.pagingMap.endNo;
+				$scope.pagingTotalPage = data.pagingMap.totalPage;
+				$scope.pagingNowBlock = data.pagingMap.nowBlock;
+				$scope.pagingTotalBlock = data.pagingMap.totalBlock;
+				$scope.pagingArray = data.pagingMap.pagingArray;
+			});
+		}else{
+			Ajax.getNoticeList(params).then(function(data){
+				$scope.boardList = data.boardList;	
+				$scope.pagingStartNo = data.pagingMap.startNo;
+				$scope.pagingEndNo = data.pagingMap.endNo;
+				$scope.pagingTotalPage = data.pagingMap.totalPage;
+				$scope.pagingNowBlock = data.pagingMap.nowBlock;
+				$scope.pagingTotalBlock = data.pagingMap.totalBlock;
+				$scope.pagingArray = data.pagingMap.pagingArray;
+			});
+		}
+	};
+	$scope.replyForm = function(list,index){
+		var lvl = list.BOARD_LVL;
+		var vMargin = 0;
+		var replyMark = "";
+		for(var i = 2;i<=lvl;i++){
+			vMargin = vMargin + 15;
+		}
+		$scope.replyStyle[index] = {'margin-left' : vMargin+"px"};
+	}
+	$scope.btn_pageBack = function(){
+		$window.history.back();
+	};
+	$scope.btn_menuUpdate = function(param){
+		let encoding = encodeURIComponent($scope.inp_title[param]);
+		let params = {
+				menu_no : param,
+				menu_name : $scope.inp_title[param],
+				menu_encoding : encoding
+		}
+		Ajax.updateMenu(params).then(function(data){
+			if(data ==1) alert("변경되었습니다.");
+			else alert("다시시도하세요.");
+		})
+	};
+	$scope.btn_boardInsertForm = function(param){
+		if(param == 1) location.href="http://"+consPath+"/boardInsert?adminYn=Y";
+		else location.href="http://"+consPath+"/boardInsert";
+	};
+	$scope.btn_insertComment = function(param){
+		let comment_content = CKEDITOR.instances.comment_content.getData();
+		let ins_date = new Date().format('yyyy-MM-dd HH:mm:ss');
+		let ins_group = $scope.boardDetailMap.BOARD_GROUP;
+		let ins_lvl = $scope.boardDetailMap.BOARD_LVL;
+		let ins_step = $scope.boardDetailMap.BOARD_STEP;
+		var params = {
+			board_writer : param,
+			board_content : comment_content,
+			board_date : ins_date,
+			board_group : ins_group,
+			board_lvl : ins_lvl,
+			board_step : ins_step
+		};
+		Ajax.insertComment(params).then(function(data){
+			$scope.boardCommentList = data.commentList;
+			$scope.boardCommentList = $scope.boardCommentList.slice();
+		})
+	};
+	$scope.btn_insertReply = function(id,list){
+		let reply_content = CKEDITOR.instances.reply_content.getData();
+		let ins_date = new Date().format('yyyy-MM-dd HH:mm:ss');
+		let ins_group = list.BOARD_GROUP;
+		let ins_lvl = list.BOARD_LVL;
+		let ins_step = list.BOARD_STEP-1;//step이 같아야함
+		var params = {
+				board_writer : id,
+				board_content : reply_content,
+				board_date : ins_date,
+				board_group : ins_group,
+				board_lvl : ins_lvl,
+				board_step : ins_step
+		};
+		Ajax.insertComment(params).then(function(data){
+			$scope.boardCommentList = data.commentList;
+			$scope.boardCommentList = $scope.boardCommentList.slice();
+		})
+	};
+	$scope.btn_selectComment = function(index){
+		$scope.replyYn[$scope.selectCommentIndex] = false;
+		if($scope.selectCommentIndex == index && $scope.selectCount == 1){
+			$scope.selectCount = 0;
+		}else if($scope.selectCommentIndex == index && $scope.selectCount == 0){
+			$scope.replyYn[index] = false;
+			$scope.selectCount = 1;
+			return;
+		}
+		$scope.selectCommentIndex = index;
+		$scope.replyYn[index] = true;
+	};
+	$scope.btn_insertBoard = function(param){
+		let ins_date = new Date().format('yyyy-MM-dd HH:mm:ss');
+		let insContent = CKEDITOR.instances.board_content.getData();
+		let params = {
+				ins_id : param,
+				ins_title : $scope.board_title,
+				ins_content : insContent,
+				ins_date : ins_date
+		};
+		if($scope.adminYn == "Y"){
+			Ajax.AdminInsertBoard(params).then(function(data){
+				if(data == 1) $window.history.back();
+				else alert("다시 시도하세요.");
+			});
+		}else{
+			Ajax.insertBoard(params).then(function(data){
+				if(data == 1) $window.history.back();
+				else alert("다시 시도하세요.");
+			});
+		}
+	};
+	$scope.btn_selectTitle = function(param){
+		if($scope.adminYn == "Y"){
+			location.href="http://"+consPath+"/noticeDetail?notice_no="+param;
+		}else{
+			location.href="http://"+consPath+"/boardDetail?board_no="+param;
+		}
+	};
+	$scope.a_selectNotice = function(){
+		$scope.adminYn = "Y";
+	};
+	$scope.btn_selectWriter = function(param){
+		alert(param);
+	};
+	$scope.btn_pagingFirst = function(){
+		$scope.pagingNowPage = 1;
+		$scope.getPagingArray();
+	};
+	$scope.btn_pagingPrev = function(){
+		$scope.pagingNowPage = $scope.pagingNowPage-1;
+		if($scope.pagingNowPage < $scope.pagingStartNo){
+			$scope.getPagingArray();
+		}
+	};
+	$scope.btn_pagingPick = function(param){
+		$scope.pagingNowPage = param;
+	};
+	$scope.btn_pagingNext = function(){
+		$scope.pagingNowPage = $scope.pagingNowPage+1;
+		if($scope.pagingNowPage > $scope.pagingEndNo){
+			$scope.getPagingArray();
+		}
+	};
+	$scope.btn_pagingLast = function(){
+		$scope.pagingNowPage = $scope.pagingTotalPage;
+		$scope.getPagingArray();
+	};
+	$scope.replyOnload = function(){
+		var reply_editor = CKEDITOR.replace( 'reply_content', {//해당 이름으로 된 textarea에 에디터를 적용
+        	toolbar : [],
+            width:'100%',
+            height: '80px'
+        });
+        
+    	CKEDITOR.instances.reply_content.on("key",function(e){
+        	var keyCode = e.data.keyCode;
+        	// Filter movement keys and related
+			if ( keyCode == 46 ||keyCode == 8 || keyCode == 2228240 ||  
+				 keyCode == 1114129 || keyCode == 4456466){}else{
+				 var txt= CKEDITOR.instances.reply_content.getData();
+	            if (txt.length > 50){
+	            	alert("댓글길이 최대치입니다.");
+	            	CKEDITOR.instances.reply_content.setData(txt);
+	            }
+			}
+       	});
+	};
+}]);

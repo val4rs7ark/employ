@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!DOCTYPE mapper     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basic.emp.dao.EmpDao">
+    
+<update id="memUpdate" parameterType="map">
+	UPDATE MEMBERINFO
+		SET member_pw = #{enPw}
+	WHERE member_id = #{member_id}
+</update>
+
+<update id="detailHitUpd" parameterType="map">
+	UPDATE generalboard
+		SET board_hit = board_hit+1
+	WHERE board_no = #{board_no}
+</update>
+
+<update id="noticeHitUpd" parameterType="map">
+	UPDATE noticeboard
+		SET notice_hit = notice_hit+1
+	WHERE notice_no = #{notice_no}
+</update>
+
+<update id="insertSignUp" parameterType="hashMap">
+	INSERT INTO MEMBERINFO( member_no,member_id, member_pw, member_email, enabled, lvl) 
+		VALUES ( #{ins_no}, #{ins_id},#{ins_pw},#{ins_email},1,1)
+</update>
+
+<update id="updateMenu" parameterType="hashMap">
+	UPDATE menuinfo
+		SET menu_name = #{menu_name},
+			menu_content = #{menu_content}
+	WHERE menu_no = #{menu_no}
+</update>
+
+<update id="boardInsert" parameterType="hashMap">
+	INSERT INTO generalboard( board_no, board_writer, board_title, board_content, board_date, board_group) 
+		VALUES ( #{board_no}, #{ins_id},#{ins_title},#{ins_content},#{ins_date},#{board_group})
+</update>
+
+<update id="commentInsert" parameterType="hashMap">
+	INSERT INTO generalboard( board_no, board_writer, board_title, board_content, board_date, board_group, board_lvl, board_step, board_match) 
+		VALUES ( #{board_no}, #{board_writer},#{board_title},#{board_content},#{board_date},#{board_group},#{board_lvl},#{board_step},#{board_match})
+</update>
+
+<update id="adminBoardInsert" parameterType="hashMap">
+	INSERT INTO noticeboard( notice_no, notice_writer, notice_title, notice_content, notice_date) 
+		VALUES ( #{notice_no}, #{ins_id},#{ins_title},#{ins_content},#{ins_date})
+</update>
+
+<select id="getMyMenu" resultType="hashMap">
+	select menu_no, menu_name, menu_content, menu_enabled, menu_lvl from menuinfo
+		ORDER BY menu_no desc 
+</select>
+
+<select id="getMainBoard" resultType="hashMap">
+    SELECT rno,board_title, board_no
+    FROM(
+        select ROW_NUMBER() OVER(ORDER BY board_no desc) rno ,board_title,board_no from generalboard
+        WHERE board_lvl = 0
+    ) A
+    WHERE rno between 1 and 5
+    ORDER BY rno
+</select>
+
+<select id="getMainNotice" resultType="hashMap">
+	SELECT notice_title, notice_no
+	FROM(
+		select ROW_NUMBER() OVER(ORDER BY notice_no desc) rno ,notice_title,notice_no from noticeboard
+	) A
+	WHERE rno between 1 and 5
+	ORDER BY rno
+</select>
+
+<select id="getSearchBoard" parameterType="map" resultType="hashMap">
+    SELECT rno,board_title,board_writer, board_no
+    FROM(
+        select ROW_NUMBER() OVER(ORDER BY board_no desc) rno ,board_title,board_no,board_writer from generalboard
+        WHERE board_lvl = 0
+    ) A
+    WHERE board_title like '%'||#{search, mode=IN, javaType=String, jdbcType=VARCHAR}||'%'
+    ORDER BY rno
+</select>
+
+<select id="getSearchNotice" parameterType="map" resultType="hashMap">
+	SELECT notice_title,notice_writer, notice_no
+	FROM(
+		select ROW_NUMBER() OVER(ORDER BY notice_no desc) rno ,notice_title,notice_no,notice_writer from noticeboard
+	) A
+	WHERE notice_title like '%'||#{search, mode=IN, javaType=String, jdbcType=VARCHAR}||'%'
+	ORDER BY rno
+</select>
+
+<select id="getBoardList" resultType="hashMap">
+	select board_no, board_writer, board_title, board_date, board_hit from generalboard
+	WHERE board_lvl = 0
+	ORDER BY board_no desc
+</select>
+
+<select id="getNoticeList" resultType="hashMap">
+	select notice_no, notice_writer, notice_title, notice_date, notice_hit from noticeboard
+	ORDER BY notice_no desc
+</select>
+
+<select id="getBoardDetail" parameterType="map" resultType="hashMap">
+	select board_no, board_writer, board_content, board_title, board_date, board_hit, board_lvl, board_group, board_match from generalboard
+		where board_no = #{board_no}
+</select>
+
+<select id="getNoticeDetail" parameterType="map" resultType="hashMap">
+	select notice_no, notice_writer, notice_content, notice_title, notice_date, notice_hit from noticeboard
+		where notice_no = #{notice_no}
+</select>
+
+<select id="getMemberList" resultType="hashMap">
+	select member_no, member_id, member_name, member_email from memberinfo
+</select>
+
+<select id="getMenuContent" resultType="string">
+	SELECT menu_content FROM menuinfo
+	WHERE menu_no = #{menu_no}
+</select>
+
+<select id="getBoardCommentList" parameterType="map" resultType="hashMap">
+	select board_no, board_writer, board_content, board_date, board_group, board_lvl, board_step from generalboard
+	WHERE board_lvl != 0
+	AND board_group = #{board_group}
+	 ORDER BY board_match asc, board_lvl asc, board_step asc 
+</select>
+
+<select id="getBorGrp" resultType="int">
+	SELECT board_group FROM generalboard
+	WHERE board_no = #{board_no}
+</select>
+<select id="getStpNo" resultType="int">
+	SELECT nvl(max(board_step)+1,1) as board_step FROM generalboard
+	WHERE board_group = #{board_group}
+</select>
+<select id="getMatNo" resultType="int">
+	SELECT nvl(max(board_match)+1,1) as board_match FROM generalboard
+	WHERE board_group = #{board_group}
+	AND board_lvl = 1
+</select>
+<select id="getGrpNo" resultType="int">
+	SELECT nvl(max(board_group)+1,1) as board_group FROM generalboard
+</select>
+<select id="getBorNo" resultType="int">
+	SELECT nvl(max(board_no)+1,1) as board_no FROM generalboard
+</select>
+<select id="getAminBorNo" resultType="int">
+	SELECT nvl(max(notice_no)+1,1) as notice_no FROM noticeboard
+</select>
+<select id="getMemNo" resultType="int">
+	SELECT nvl(max(member_no)+1,1) as member_no FROM memberinfo
+</select>
+
+<select id="testing" parameterType="string" resultType="string">
+	SELECT to_char(to_date(#{value},'YYYY-MM-DD HH24:MI'),'YYYY-MM-DD HH24:MI') from dual
+</select>
+</mapper>    

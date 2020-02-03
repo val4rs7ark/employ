@@ -1,0 +1,40 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+
+<div class="col-sm-12" data-ng-app="angularApp" data-ng-controller="angularCtrl" data-ng-init="getAdminBoardInit()"data-ng-class="{loading:IsLoading}">
+	<div class="row">
+		<div class="col-sm-5 pickBorder">
+			<h5>게시판 관리</h5>
+			<hr class="my-2">
+			<button type="button" class="btn btn-secondary" data-ng-click="btn_boardInsertForm(1)">공지사항 글쓰기</button>
+			<hr class="my-1">
+			<h5>공지알림</h5>
+			<hr class="my-2">
+			<input type="text" id="inp_modal"/>
+			<button type="button" class="btn btn-secondary" onclick="btn_adminModal()">알림창 보내기</button>
+		</div>
+		<div class="offset-sm-1 col-sm-5 pickBorder">
+			<h5>메뉴 관리</h5>
+			<hr class="my-2">
+			<table>
+				<tr data-ng-repeat="list in menuList">
+					<td>{{list.MENU_NAME}}</td>
+					<td>
+						 -&gt;<input type="text" data-ng-model="inp_title[list.MENU_NO]"/>
+					</td>
+					<td>
+						<button type="button" class="btn btn-secondary" data-ng-click="btn_menuUpdate(list.MENU_NO)">수정</button>
+					</td>
+				</tr>
+			</table>	
+		</div>
+	</div>
+	<div class="loadingModal"></div>
+	<script type="text/javascript">
+		function btn_adminModal(){
+			var modalMsg = $("#inp_modal").val();
+			socket.emit('modal', modalMsg);
+			$("#inp_modal").val("");
+		}
+	</script>
+</div>

@@ -1,0 +1,98 @@
+<b:beans xmlns="http://www.springframework.org/schema/security"
+		 xmlns:b="http://www.springframework.org/schema/beans"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+						http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd">
+
+	<b:bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
+        <b:property name="basenames">
+            <b:list>
+                <b:value>classpath:com/basic/emp/security/security_message</b:value>
+            </b:list>
+        </b:property>
+        <b:property name="defaultEncoding" value="UTF-8"/>
+        <b:property name="cacheSeconds" value="5"/>
+    </b:bean>
+    <!-- MessageSource를 사용하기 위한 Accessor 설정 -->
+	<b:bean id="messageSourceAccessor"
+	class="org.springframework.context.support.MessageSourceAccessor">
+		<b:constructor-arg ref="messageSource"/>
+	</b:bean>
+	<!-- MessageSource를 사용하기위한 MessageUtils 매핑 -->
+	<b:bean id="message" class="com.basic.emp.comm.MessageUtils">
+		<b:property name="messageSourceAccessor" ref="messageSourceAccessor"/>
+	</b:bean>
+
+	<http auto-config="true" use-expressions="true">
+	    <intercept-url pattern="/" access="permitAll" />
+	    <intercept-url pattern="/getMenuMapAjax" access="permitAll" />
+	    <intercept-url pattern="/getMainMapAjax" access="permitAll" />
+	    <intercept-url pattern="/ckeditor**" access="permitAll" />
+	    <intercept-url pattern="/insert**" access="permitAll" />
+	    <intercept-url pattern="/signUp" access="permitAll" />
+	    <intercept-url pattern="/resources/upload/**" access="permitAll" />
+	    <intercept-url pattern="/resources/**" access="permitAll" />
+	    <intercept-url pattern="/js/*" access="permitAll" />
+	    <intercept-url pattern="/admin/**" access="hasRole('ROLE_ADMIN')"/>
+	    <intercept-url pattern="/main" access="permitAll" />
+	    <intercept-url pattern="/**" access="hasAnyRole('ROLE_ADMIN','ROLE_USER')"/>
+	    <form-login
+		    login-processing-url="/login"
+		    login-page="/main?cussecmsg=1"
+		    username-parameter="member_id"
+		    password-parameter="member_pw"
+		    authentication-success-handler-ref="userSuccessHandler"
+		    authentication-failure-handler-ref="userFailureHandler"
+		/>
+		<remember-me
+			key="wmoskey"
+			token-validity-seconds="2419200" 
+		    remember-me-parameter="remember-me"
+		    remember-me-cookie="remember-me"
+		/><!-- 4 주 -->
+		<logout 
+		invalidate-session="true"
+        logout-url="/logout"	
+        delete-cookies="JSESSIONID,remember-me"
+        logout-success-url="/main"
+   		 />
+	</http>
+	
+	<b:bean id="userSuccessHandler" class="com.basic.emp.security.AuthenticationSuccessHandlerImpl">
+	    <b:property name="userId" value="member_id"/>
+	</b:bean>
+
+	<b:bean id="userFailureHandler" class="com.basic.emp.security.AuthenticationFailureHandlerImpl">
+	    <b:property name="userId" value="member_id"/>
+	    <b:property name="userPw" value="member_pw"/>
+	    <b:property name="errormsg" value="ERRORMSG"/>
+	    <b:property name="defaultFailureUrl" value="/main?error"/>
+	</b:bean>
+	
+	<b:bean id="delegatingPasswordEncoder" class="org.springframework.security.crypto.password.DelegatingPasswordEncoder">
+		<b:constructor-arg>
+			<b:value>bcrypt</b:value>
+		</b:constructor-arg>
+		<b:constructor-arg>
+			<b:map>
+				<b:entry>
+					<b:key>
+						<b:value>bcrypt</b:value>
+					</b:key>
+					<b:bean class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"/>
+				</b:entry>
+			</b:map>
+		</b:constructor-arg>
+	</b:bean>
+	<b:bean id="userAuthProvider" class="com.basic.emp.security.AuthenticationProviderImpl"/>
+	<b:bean id="userService" class="com.basic.emp.security.UserDetailsServiceImpl"/>
+	
+	<authentication-manager>
+		<authentication-provider ref="userAuthProvider"/>
+    	<authentication-provider user-service-ref="userService">
+			<password-encoder ref="delegatingPasswordEncoder"/>
+    	</authentication-provider>
+	</authentication-manager>
+        
+
+</b:beans>

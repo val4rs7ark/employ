@@ -1,0 +1,330 @@
+package com.basic.emp.service;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
+
+import com.basic.emp.dao.EmpDao;
+import com.basic.emp.util.Paging;
+import com.google.gson.JsonObject;
+
+@Service
+public class BoardServiceImpl implements BoardService {
+	private static final Logger logger = Logger.getLogger(BoardServiceImpl.class);
+	
+	@Autowired
+	EmpDao empDao;
+
+	@Override
+	public String memUpdate(String member_id, String enPw) {
+		Map<String,Object> pMap = new HashMap<>();
+		pMap.put("member_id", member_id);
+		pMap.put("enPw", enPw);
+		logger.info(pMap.toString());
+		String result = null;
+		int iresult = empDao.memUpdate(pMap);
+		if(iresult==0) result = "성공";
+		else result = "실패";
+		return result;
+	}
+
+	@Override
+	public String testing(String toDate) {
+		String result = empDao.testing(toDate);
+		return result;
+	}
+	
+	@Override
+	public List<List<Map<String, Object>>> getMainList() {
+		List<List<Map<String, Object>>> result = new ArrayList<>();
+		List<Map<String,Object>> boardList = empDao.getMainBoard();
+		result.add(boardList);
+		List<Map<String,Object>> noticeList = empDao.getMainNotice();
+		result.add(noticeList);
+		return result;
+	}
+	
+	@Override
+	public Map<String, Object> getSearchMap(Map<String, Object> pMap) {
+		String decoding = pMap.get("search").toString();
+		String search = null;
+		try {
+			search = URLDecoder.decode(decoding, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		pMap.put("search", search);
+		Map<String, Object> result = new HashMap<>();
+		List<Map<String,Object>> boardList = empDao.getSearchBoard(pMap);
+		result.put("boardList",boardList);
+		List<Map<String,Object>> noticeList = empDao.getSearchNotice(pMap);
+		result.put("noticeList",noticeList);
+		return result;
+	}
+	
+	@Override
+	public List<Map<String,Object>> getMyMenu() {
+		List<Map<String,Object>> menuList = empDao.getMyMenu();
+		logger.info("++++++++++++serviceImpl에서 확인 --> "+menuList.toString());
+		
+		return menuList;
+	}
+
+	@Override
+	public List<Map<String, Object>> getMemberList() {
+		List<Map<String, Object>> memList = empDao.getMemberList();
+		logger.info("++++++++++++serviceImpl에서 확인 --> "+memList.toString());
+		return memList;
+	}
+
+	@Override
+	public String insertSignUp(Map<String, Object> pMap) {
+		String result = null;
+		int member_no = empDao.getMemNo();
+		pMap.put("ins_no", member_no);
+		int iresult = empDao.insertSignUp(pMap);
+		if(iresult == 1) {
+			result = "회원가입 성공";
+		}else {
+			result = "회원가입 실패";
+		}
+		return result;
+	}
+	
+	@Override
+	public int boardInsert(Map<String, Object> pMap) {
+		
+		int board_no = empDao.getBorNo();
+		int board_group = empDao.getGrpNo();
+		
+		pMap.put("board_no", board_no);
+		pMap.put("board_group", board_group);
+		
+		int result = empDao.boardInsert(pMap);
+		
+		return result;
+	}
+	
+	/**
+	 * ::무한 대댓글 로직 구현하기::
+	 * ---------------------------------------------------------------------
+	 * board_no : 글의 고유번호 즉 pk
+	 * ---------------------------------------------------------------------
+	 * board_group : 현재 이 프로젝트는 댓글을 게시글이랑 같이 한 테이블에서 사용 중 이기 때문에
+	 *   댓글들이 어느 게시글에 귀속 되어있는지 표현한다.
+	 * ---------------------------------------------------------------------
+	 * board_lvl : 댓글의 깊이 즉 댓글의댓글이면 두번 파이는걸 표현해야함 그걸 해주는 컬럼.
+	 * ---------------------------------------------------------------------
+	 * board_step : 댓글들의 나열순서 댓글의 댓글은 +++새치기를 시켜줘야+++ 하기에
+	 *   setReplyTree 쿼리문을 호출하여 처리하였다.
+	 * ---------------------------------------------------------------------
+	 * board_match : board_group이 게시글들을 덩어리 만들어 주는것 처럼 board_match는
+	 *   댓글들을 덩어리로 만들어줌. (덩어리라는 표현을 바꾸곤싶은데 이거말곤 생각이안나 ㅜㅜ)
+	 * ---------------------------------------------------------------------  
+	 * board_conn : 부모의 댓글들의 board_no를 여기다가 담아둔다. 
+	 *   게시글의 첫 댓글들은 자기자신의 번호를 담는다.
+	 * ---------------------------------------------------------------------  
+	 */
+	@Override
+	public int commentInsert(Map<String, Object> pMap) {
+		String board_title = ".comment";
+		int board_no = empDao.getBorNo();
+		int board_group = (int) Math.round(Double.parseDouble(pMap.get("board_group").toString()));
+		int board_lvl = (int) Math.round(Double.parseDouble(pMap.get("board_lvl").toString()));
+		int board_step = (int) Math.round(Double.parseDouble(pMap.get("board_step").toString()));
+		int board_match = 0;
+		int board_conn = 0;
+		if(pMap.get("board_conn") != null) {//대댓인 경우
+			board_match = (int) Math.round(Double.parseDouble(pMap.get("board_match").toString()));
+			board_conn = (int) Math.round(Double.parseDouble(pMap.get("board_conn").toString()));
+			pMap.put("board_match", board_match);
+			pMap.put("board_conn", board_conn);
+			pMap.put("board_step", board_step);
+			empDao.setReplyTree(pMap);//대댓은 새치기합니다~
+		}else {//댓글인 경우
+			board_match = empDao.getMatNo(pMap);
+			board_conn = board_no;
+		}
+		pMap.put("board_match", board_match);
+		pMap.put("board_no", board_no);
+		pMap.put("board_title",board_title);
+		pMap.put("board_group", board_group);
+		pMap.put("board_step", ++board_step);
+		pMap.put("board_lvl", ++board_lvl);
+		pMap.put("board_conn", board_conn);
+		int result = empDao.commentInsert(pMap);
+		
+		return result;
+	}
+	
+	@Override
+	public int updateMenu(Map<String, Object> pMap) {
+		String getMenu_content = empDao.getMenuContent(pMap);
+		String encoding = pMap.get("menu_encoding").toString();
+		String menu_content = getMenu_content.split("=")[0]+"="+encoding;
+		pMap.put("menu_content", menu_content);
+		int result = empDao.updateMenu(pMap);
+		return result;
+	}
+	
+	@Override
+	public int adminBoardInsert(Map<String, Object> pMap) {
+		int board_no = empDao.getAminBorNo();
+		
+		pMap.put("notice_no", board_no);
+		
+		int result = empDao.adminBoardInsert(pMap);
+		
+		return result;
+	}
+	/**
+	 * 인터넷에서 주서온 로직이다.
+	 * 이미지를 업로드한 후 
+	 * {"uploaded" : 1, "fileName" : "test.jpg", "url" : "/img/test.jpg"}
+	 * json 형식으로 리턴한다.
+	 * 이 로직에서 핵심 : 요즘은 리턴을 json 형태로 보내야한다. 왜 와이?
+	 * 계속 변화하는 흐름에 도태되기 싫으면 그런갑다하고 따라야한다.
+	 * 보안문제로 인해 계속 변화한다.
+	 * 사실 잘 모름 ㅎㅎㅎㅎㅎ
+	 */
+	@SuppressWarnings("null")
+	@Override
+	public void imageUpload(HttpServletRequest request, HttpServletResponse response, MultipartHttpServletRequest upload) {
+		String localPath = "D:\\Java\\workspace_pjt\\empolyment\\src\\main\\webapp\\resources\\upload\\";
+		String hostPath = request.getSession().getServletContext().getRealPath("/");
+		
+		JsonObject json = new JsonObject();
+		PrintWriter printWriter = null;
+		OutputStream out = null;
+		MultipartFile file = upload.getFile("upload");
+		if(file != null){
+			if(file.getSize() > 0 && StringUtils.isNotBlank(file.getName())){
+				if(file.getContentType().toLowerCase().startsWith("image/")){
+					try{
+						String fileName = file.getName();
+						byte[] bytes = file.getBytes();
+						File uploadFile = new File(localPath);
+						if(!uploadFile.exists()){
+							uploadFile.mkdirs();
+						}
+						fileName = UUID.randomUUID().toString()+".jpg";
+						localPath = localPath + "/" + fileName;
+						out = new FileOutputStream(new File(localPath));
+                        out.write(bytes);
+                        
+                        printWriter = response.getWriter();
+                        response.setContentType("text/html");
+                        String fileUrl = request.getContextPath() + "/resources/upload/" + fileName;
+                        //시간 끌어볼까
+                        try {
+                			Thread.sleep(1000); //1초 대기
+                		} catch (InterruptedException e) {
+                			e.printStackTrace();
+                		}
+                        // json 데이터로 등록
+                        // {"uploaded" : 1, "fileName" : "test.jpg", "url" : "/img/test.jpg"}
+                        // 이런 형태로 리턴이 나가야함.
+                        json.addProperty("uploaded", 1);
+                        json.addProperty("fileName", fileName);
+                        json.addProperty("url", fileUrl);
+                        
+                        printWriter.println(json);
+                    }catch(IOException e){
+                        e.printStackTrace();
+                    }finally{
+                        if(out != null){
+                            try {
+								out.close();
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+                        }
+                        if(printWriter != null){
+                            printWriter.close();
+                        }		
+					}
+				}
+			}
+		}
+		
+	}
+	/**
+	 * 게시글리스트 가져오는 메소드
+	 */
+	@Override
+	public Map<String, Object> getBoardList(Map<String, Object> pMap) {
+		Map<String, Object> result = new HashMap<>();
+		List<Map<String, Object>> boardList = empDao.getBoardList();
+		pMap.put("totalRow", boardList.size());
+		Map<String, Object> pagingMap = paging(pMap);
+		result.put("boardList", boardList);
+		result.put("pagingMap", pagingMap);
+		
+		return result;
+	}
+	
+	@Override
+	public Map<String, Object> getNoticeList(Map<String, Object> pMap) {
+		Map<String, Object> result = new HashMap<>();
+		List<Map<String, Object>> boardList = empDao.getNoticeList();
+		pMap.put("totalRow", boardList.size());
+		Map<String, Object> pagingMap = paging(pMap);
+		result.put("boardList", boardList);
+		result.put("pagingMap", pagingMap);
+		
+		return result;
+	}
+
+	@Override
+	public Map<String, Object> paging(Map<String, Object> pMap) {
+		Map<String, Object> result = new HashMap<>();
+		Paging paging = new Paging(pMap);
+		result = paging.getPaging();
+		return result;
+	}
+
+	@Override
+	public Map<String, Object> getBoardDetail(Map<String, Object> pMap) {
+		Map<String, Object> result = empDao.getBoardDetail(pMap);
+		empDao.detailHitUpd(pMap);
+		return result;
+	}
+
+	@Override
+	public Map<String, Object> getNoticeDetail(Map<String, Object> pMap) {
+		Map<String, Object> result = empDao.getNoticeDetail(pMap);
+		empDao.noticeHitUpd(pMap);
+		return result;
+	}
+
+	@Override
+	public List<Map<String, Object>> getBoardCommentList(Map<String, Object> pMap) {
+		if(pMap.get("board_group") == null) {
+			int board_group = empDao.getBorGrp(pMap);
+			pMap.put("board_group", board_group);
+		}
+		List<Map<String, Object>> getBoardCommentList = empDao.getBoardCommentList(pMap);
+		return getBoardCommentList;
+	}
+
+
+}

@@ -1,0 +1,52 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+
+<div class="col-md-12" data-ng-app="angularApp" data-ng-controller="angularCtrl" data-ng-init="getSearchInit()" data-ng-class="{loading:IsLoading}">
+	<div class="pickBorder">
+		<div>	
+			<h5>자유게시판 검색결과</h5>
+			<div data-ng-if="searchBoard != null" data-ng-repeat="list in searchBoard | limitTo : 5">
+				<div>
+					 <a class="searchA" href="#" data-ng-click="btn_selectTitle(list.BOARD_NO)">{{list.BOARD_TITLE}}</a>
+				</div>
+				<div class="row">
+					 <div class="col-md-1">{{list.BOARD_WRITER}}</div>
+					 <div class="col-md-2">{{list.BOARD_DATE}}</div>
+				</div>
+			</div>
+			<div data-ng-if="searchBoard.length > 5">
+				<div>
+					<button class="btn btn-secondary" type="button">게시물 더 보기</button>
+				</div>
+			</div>
+			<div data-ng-if="searchBoard.length == 0">
+				<div>
+					검색 결과가 없습니다.
+				</div>
+			</div>
+		</div>
+		<div style="margin-top : 20px;">
+			<h5>공지사항 검색결과</h5>
+			<div data-ng-if="searchNotice != null" data-ng-repeat="list in searchNotice | limitTo : 5">
+				<div>
+					<a class="searchA" href="#" data-ng-click="a_selectNotice(); btn_selectTitle(list.NOTICE_NO)">{{list.NOTICE_TITLE}}</a> 
+				</div>
+				<div class="row">
+					 <div class="col-md-1">{{list.NOTICE_WRITER}}</div>
+					 <div class="col-md-1">{{list.NOTICE_DATE}}</div>
+				</div>
+			</div>
+			<div data-ng-if="searchNotice.length > 5">
+				<div>
+					<button class="btn btn-secondary" type="button">게시물 더 보기</button>
+				</div>
+			</div>
+			<div data-ng-if="searchNotice.length == 0">
+				<div>
+					검색 결과가 없습니다.
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="loadingModal"></div>
+</div>
